@@ -20,6 +20,7 @@ import { InProcessLoaderHost, OutOfProcessLoaderHost } from './loaderHost';
 import { createFileFiltersFromArguments, createFileMatcherFromArguments, createTitleMatcher, errorWithFile, forceRegExp } from '../util';
 import { buildProjectsClosure, collectFilesForProject, filterProjects } from './projectUtils';
 import {  createTestGroups, filterForShard } from './testGroups';
+import { shuffleTestGroups } from './shuffle';
 import { applyRepeatEachIndex, bindFileSuiteToProject, filterByFocusedLine, filterOnly, filterTestsRemoveEmptySuites } from '../common/suiteUtils';
 import { Suite } from '../common/test';
 import { dependenciesForTestFile } from '../transform/compilationCache';
@@ -185,8 +186,13 @@ export async function createRootSuite(testRun: TestRun, errors: TestError[], sho
       testGroups.push(...createTestGroups(projectSuite, config.config.shard.total));
     }
 
+    // Shuffle test groups if shardingSeed is provided.
+    const shuffledTestGroups = config.config.shardingSeed 
+      ? shuffleTestGroups(testGroups, config.config.shardingSeed)
+      : testGroups;
+
     // Shard test groups.
-    const testGroupsInThisShard = filterForShard(config.config.shard, testGroups);
+    const testGroupsInThisShard = filterForShard(config.config.shard, shuffledTestGroups);
     const testsInThisShard = new Set<TestCase>();
     for (const group of testGroupsInThisShard) {
       for (const test of group.tests)

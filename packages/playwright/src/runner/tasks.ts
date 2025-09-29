@@ -30,6 +30,7 @@ import { TaskRunner } from './taskRunner';
 import { detectChangedTestFiles } from './vcs';
 import { Suite } from '../common/test';
 import { createTestGroups } from '../runner/testGroups';
+import { shuffleTestGroups } from '../runner/shuffle';
 import { cacheDir } from '../transform/compilationCache';
 import { removeDirAndLogToConsole } from '../util';
 
@@ -340,8 +341,11 @@ function createPhasesTask(): Task<TestRun> {
           for (const project of phaseProjects) {
             const projectSuite = projectToSuite.get(project)!;
             const testGroups = createTestGroups(projectSuite, testRun.config.config.workers);
-            phase.projects.push({ project, projectSuite, testGroups });
-            testGroupsInPhase += Math.min(project.workers ?? Number.MAX_SAFE_INTEGER, testGroups.length);
+            const shuffledTestGroups = testRun.config.config.shardingSeed 
+              ? shuffleTestGroups(testGroups, testRun.config.config.shardingSeed)
+              : testGroups;
+            phase.projects.push({ project, projectSuite, testGroups: shuffledTestGroups });
+            testGroupsInPhase += Math.min(project.workers ?? Number.MAX_SAFE_INTEGER, shuffledTestGroups.length);
           }
           debug('pw:test:task')(`created phase #${testRun.phases.length} with ${phase.projects.map(p => p.project.project.name).sort()} projects, ${testGroupsInPhase} testGroups`);
           maxConcurrentTestGroups = Math.max(maxConcurrentTestGroups, testGroupsInPhase);
