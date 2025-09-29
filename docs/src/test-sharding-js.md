@@ -45,6 +45,39 @@ Without the fullyParallel setting, Playwright Test defaults to file-level granul
 - **Without** `fullyParallel`: Tests are split at the file level, so to balance the shards, it's important to keep your test files small and evenly sized.
 - To ensure the most effective use of sharding, especially in CI environments, it is recommended to use `fullyParallel: true` when aiming for balanced distribution across shards. Otherwise, you may need to manually organize your test files to avoid imbalances.
 
+## Shuffling test order
+
+By default, tests are discovered and run in alphabetical order, which can lead to uneven distribution of slow and fast tests across shards. For example, if all your slow tests happen to be in files that start with 'A' through 'M', and your fast tests are in files starting with 'N' through 'Z', then some shards will be much slower than others.
+
+You can use the [`property: TestConfig.shardingSeed`] option to shuffle the order of test groups in a deterministic way. This helps distribute slow and fast tests more evenly across shards.
+
+**Usage**
+
+```js title="playwright.config.ts"
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  shardingSeed: 'my-seed-value'
+});
+```
+
+**Benefits**
+
+- **Even load distribution**: Slow and fast tests are distributed more evenly across shards
+- **Reproducible**: The same seed always produces the same test order
+- **CI optimization**: Reduces the likelihood of one shard being significantly slower than others
+
+**Example**
+
+```js title="playwright.config.ts"
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  shard: { total: 4, current: 1 },
+  shardingSeed: 'ci-run-123'
+});
+```
+
 ## Merging reports from multiple shards
 
 In the previous example, each test shard has its own test report. If you want to have a combined report showing all the test results from all the shards, you can merge them.
